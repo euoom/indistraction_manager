@@ -19,7 +19,8 @@ class Monitor:
 
         results = client.databases.query(
             **{
-                'database_id': '7847ac46a31a4317b66ae4e700f55403',
+                # 'database_id': '7847ac46a31a4317b66ae4e700f55403',
+                'database_id': config.get('NOTION_DB_ID'),
                 'filter': {
                     'and': [
                         {
@@ -52,7 +53,7 @@ class Monitor:
     def sleep_until(hour: int):
         now = datetime.datetime.now()
 
-        if now.hour < 8:
+        if now.hour < hour:
             target_time = datetime.datetime.combine(now.date(), datetime.time(hour))
         else:
             tomorrow = now + datetime.timedelta(days=1)
