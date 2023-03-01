@@ -15,11 +15,11 @@ def main():
             Monitor.sleep_until(hour=8)
 
         else:
+            SiteBlocker.block()
+            Monitor.sleep(monitor_interval % process_block_interval)
             for _ in range(monitor_interval // process_block_interval):
                 ProcessBlocker.block()
                 Monitor.sleep(process_block_interval)
-            SiteBlocker.block()
-            Monitor.sleep(monitor_interval % process_block_interval)
 
 
 if '__main__' == __name__:
