@@ -2,7 +2,7 @@ from blocker import SiteBlocker, ProcessBlocker
 from monitor import Monitor
 
 monitor_interval = 10
-block_interval = 1
+process_block_interval = 1
 
 
 def main():
@@ -15,11 +15,11 @@ def main():
             Monitor.sleep_until(hour=8)
 
         else:
-            for _ in range(monitor_interval // block_interval):
+            for _ in range(monitor_interval // process_block_interval):
                 ProcessBlocker.block()
-                SiteBlocker.block()
-                Monitor.sleep(block_interval)
-            Monitor.sleep(monitor_interval % block_interval)
+                Monitor.sleep(process_block_interval)
+            SiteBlocker.block()
+            Monitor.sleep(monitor_interval % process_block_interval)
 
 
 if '__main__' == __name__:
