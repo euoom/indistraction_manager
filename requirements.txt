@@ -1,0 +1,7 @@
+notion-client
+python-dotenv
+
+pywin32
+psutil
+
+pytz
