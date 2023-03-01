@@ -30,7 +30,7 @@ class ProcessBlocker:
         while matched_list:
             name, matched_name = matched_list[0]
             os.system(f'taskkill /f /im "{matched_name}"')
-            win32api.MessageBox(0, f"{name}을 하려고 했군! \n 일에 집중하라구!", '', 48)
+            win32api.MessageBox(0, f"{name}을 하려고 했군! \n 일에 집중하라구!", '', 0x1000)
             matched_list = ProcessBlocker._get_block_process()
 
     @staticmethod
