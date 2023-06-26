@@ -47,7 +47,7 @@ class ProcessBlocker:
             self.state = 'free'
 
 
-# process_blocker = ProcessBlocker()
+process_blocker = ProcessBlocker()
 
 
 class SiteBlocker:
@@ -124,7 +124,6 @@ signal.signal(signal.SIGTERM, exit_gracefully)
 
 if __name__ == '__main__':
     logging.info(f"[{datetime.datetime.now()}] 프로그램이 실행되었습니다.")
-    process_blocker = ProcessBlocker()
     process_blocker.block([
         'KakaoTalk',
         'EZ2ON',
