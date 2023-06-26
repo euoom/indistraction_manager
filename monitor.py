@@ -6,7 +6,7 @@ import pytz
 from dotenv import dotenv_values
 from notion_client import Client
 
-config = dotenv_values('private/.env')
+config = dotenv_values('assets/.env')
 client = Client(auth=config.get('NOTION_TOKEN'))
 seoul_tz = pytz.timezone('Asia/Seoul')
 

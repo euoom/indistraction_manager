@@ -1,75 +1,139 @@
-import json
+import datetime
+import logging
+import multiprocessing
 import os
-import subprocess
+import signal
 import sys
 import time
+import typing
 
 import psutil
 import win32api
-import win32com.shell.shell as shell
 
-with open('private/block_process.json') as f:
-    block_list = json.load(f)
+logging.basicConfig(filename='app.log', level=logging.INFO)
 
 
 class ProcessBlocker:
-    @staticmethod
-    def _get_block_process():
-        all_process = set(map(lambda x: x.name(), psutil.process_iter()))
-        matched_list = []
-
-        for block_process_name in block_list:
-            for each_process in all_process:
-                if block_process_name in each_process:
-                    matched_list.append([block_process_name, each_process])
-        return matched_list
+    def __init__(self):
+        self.state: typing.Optional[str] = None
+        self.process: typing.Optional[multiprocessing.Process] = None
 
     @staticmethod
-    def block():
-        matched_list = ProcessBlocker._get_block_process()
-        while matched_list:
-            name, matched_name = matched_list[0]
-            os.system(f'taskkill /f /im "{matched_name}"')
-            win32api.MessageBox(0, f"{name}을 하려고 했군! \n 일에 집중하라구!", '', 0x1000)
-            matched_list = ProcessBlocker._get_block_process()
+    def _block_process(block_names: list[str]):
+        while True:
+            all_process = list({x.name() for x in psutil.process_iter()})
+            for block in block_names:
+                for process in all_process:
+                    if block in process:
+                        os.system(f'taskkill /f /im "{process}"')
+                        win32api.MessageBox(0, f"{block}을 하려고 했군! \n 본업에 집중하라구!", '', 0x1000)
 
-    @staticmethod
-    def free():
-        pass
+            time.sleep(3)
+
+    def block(self, process_names: list[str]):
+        if self.state == 'block':
+            return
+        logging.info(f'[{datetime.datetime.now()}] {self.__class__.__name__}.block')
+        self.state = 'block'
+
+        self.process = multiprocessing.Process(target=self._block_process, kwargs={'block_names': process_names})
+        self.process.start()
+
+    def free(self):
+        if self.process:
+            logging.info(f'[{datetime.datetime.now()}] {self.__class__.__name__}.free')
+            self.process.terminate()
+            self.process.join()
+            self.state = 'free'
 
 
 class SiteBlocker:
+    def __init__(self):
+        self.state: typing.Optional[str] = None
+        self.path_hosts = r'C:\Windows\System32\drivers\etc\hosts'
+        self.path_original = r'assets\hosts.original'
+        self.path_blocked = r'assets\hosts.blocked'
+
     @staticmethod
-    def _is_running():
-        running_process = set()
-        for proc in psutil.process_iter():
-            running_process.add(proc.name())
-        if 'BlockSite.exe' in running_process:
-            return True
+    def _read_file(full_path: str) -> list[str] | None:
+        try:
+            with open(full_path, 'r') as file:
+                return file.readlines()
+        except FileNotFoundError as e:
+            logging.error(f'[{datetime.datetime.now()}] {full_path} 파일을 찾을 수 없습니다. \n{str(e)}')
+        except IOError as e:
+            logging.error(f'[{datetime.datetime.now()}] {full_path} 파일을 읽는 동안 오류가 발생했습니다. \n{str(e)}')
+        finally:
+            file.close()
+        return None
+
+    @staticmethod
+    def _write_file(full_path: str, lines: list[str]) -> bool:
+        try:
+            with open(full_path, 'w') as file:
+                file.writelines(lines)
+                return True
+        except FileNotFoundError as e:
+            logging.error(f'[{datetime.datetime.now()}] {full_path} 파일을 찾을 수 없습니다. \n{str(e)}')
+        except IOError as e:
+            logging.error(f'[{datetime.datetime.now()}] {full_path} 파일을 읽는 동안 오류가 발생했습니다. \n{str(e)}')
         return False
 
-    @staticmethod
-    def block():
-        if SiteBlocker._is_running():
+    def block(self, sites: list[str]):
+        if self.state == 'block':
             return
+        logging.info(f'[{datetime.datetime.now()}] {self.__class__.__name__}.block')
+        self.state = 'block'
 
-        process = subprocess.Popen('cmd /k ', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=None)
-        process.stdin.write(b"cd %LOCALAPPDATA%\\BlockSite\n")
-        process.stdin.write(b"BlockSite\n")
-        # stdOutput, stdError = process.communicate()
-        process.stdin.close()
+        texts = self._read_file(self.path_original)
+        texts.append('\n')
+        if texts:
+            for each in sites:
+                line = f'127.0.0.1\t{each}\n'
+                texts.append(line)
 
-    @staticmethod
-    def free():
-        if not SiteBlocker._is_running():
+        self._write_file(self.path_blocked, texts)
+        self._write_file(self.path_hosts, texts)
+
+    def free(self):
+        if self.state == 'free':
             return
+        logging.info(f'[{datetime.datetime.now()}] {self.__class__.__name__}.free')
+        self.state = 'free'
 
-        os.system('taskkill /f /im BlockSite.exe')
+        texts = self._read_file(self.path_original)
+        self._write_file(self.path_hosts, texts)
 
+
+def exit_gracefully(signal, frame):
+    ProcessBlocker().free()
+    SiteBlocker().free()
+
+    logging.info(f"[{datetime.datetime.now()}] 프로그램이 종료되었습니다.")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, exit_gracefully)
+signal.signal(signal.SIGTERM, exit_gracefully)
 
 if __name__ == '__main__':
     ...
     # check_admin()
 
-    ProcessBlocker.block()
-    SiteBlocker.block()
+    process_blocker = ProcessBlocker()
+    process_blocker.block([
+        'EZ2ON',
+        'DJMAX',
+        'Steam',
+        'StarCraft',
+        'Battle.net'
+    ])
+
+    site_blocker = SiteBlocker()
+    site_blocker.block([
+        'www.youtube.com',
+        'www.facebook.com',
+        'comic.naver.com',
+        'game.naver.com',
+        'www.op.gg',
+    ])
