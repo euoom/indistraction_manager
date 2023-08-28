@@ -7,17 +7,22 @@ from dotenv import dotenv_values
 from notion_client import Client
 
 config = dotenv_values('assets/.env')
-client = Client(auth=config.get('NOTION_TOKEN'))
+clients = [
+    Client(auth=config.get('NOTION_TOKEN_1')),
+    Client(auth=config.get('NOTION_TOKEN_2'))
+]
+
 seoul_tz = pytz.timezone('Asia/Seoul')
 
 
 class Monitor:
+    # 로직1. 오늘 날짜에 해당하는 할일을 모두 완료했는가?
     @staticmethod
     def check():
         today_start = datetime.datetime.now(seoul_tz).replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        results = client.databases.query(
+        results = client_1.databases.query(
             **{
                 # 'database_id': '7847ac46a31a4317b66ae4e700f55403',
                 'database_id': config.get('NOTION_DB_ID'),
@@ -48,6 +53,11 @@ class Monitor:
                 return False
 
         return True
+
+    # 로직2. 집안에 있는 네트워크를 사용중인가?
+    @staticmethod
+    def check2():
+        pass
 
     @staticmethod
     def sleep_until(hour: int):

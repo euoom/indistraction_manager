@@ -10,10 +10,18 @@ import typing
 import psutil
 import win32api
 
-logging.basicConfig(filename='app.log', level=logging.INFO)
+os.system('chcp 65001')
+logging.basicConfig(filename='app.log', level=logging.INFO, encoding='UTF-8')
+
+class Blocker:
+    def block(self, items: list[str]) -> None:
+        ...
+
+    def free(self) -> None:
+        ...
 
 
-class ProcessBlocker:
+class ProcessBlocker(Blocker):
     def __init__(self):
         self.state: typing.Optional[str] = None
         self.process: typing.Optional[multiprocessing.Process] = None
@@ -50,7 +58,7 @@ class ProcessBlocker:
 process_blocker = ProcessBlocker()
 
 
-class SiteBlocker:
+class SiteBlocker(Blocker):
     def __init__(self):
         self.state: typing.Optional[str] = None
         self.path_hosts = r'C:\Windows\System32\drivers\etc\hosts'
